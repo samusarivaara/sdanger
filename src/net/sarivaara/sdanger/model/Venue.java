@@ -17,7 +17,7 @@ import android.os.Parcelable;
 
 public class Venue implements Parcelable {
 
-	private static final int DISTANCE_UNKNOWN = -1;
+	public static final int DISTANCE_UNKNOWN = -1;
 	
 	// name - The best known name for this venue.
 	private String mName;
@@ -58,8 +58,8 @@ public class Venue implements Parcelable {
 	}
 	
 	public String toString() {
-		// TODO: format in view layer/localize
-		return String.format("%s %sDistance: %d meters", mName, mAddress, mDistanceInMeters);
+		// ONLY for debugging purposes
+		return String.format("%s %s Distance: %d meters", mName, mAddress, mDistanceInMeters);
 	}
 	
 	// Parcelable interface related

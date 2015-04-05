@@ -24,19 +24,22 @@ import android.widget.Toast;
 
 
 public class MainActivity extends ListActivity implements IMainView, SearchView.OnQueryTextListener {
-
 	
 	IMainPresenter mPresenter;
-	List<Venue> mVenues = new ArrayList<Venue>();	
+	// Simplified list view, Venue presented as a formatted/localized string.
+	List<String> mVenues = new ArrayList<String>();
+	ArrayAdapter<String> mAdapter;
+	
+	// Actionbar search view, always visible
 	SearchView mSearchView;
+	// Shows error (no network, location off, no search matches...) instead of list items.
 	TextView mStatusText;
-	ArrayAdapter<Venue> mAdapter;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		
 		super.onCreate(savedInstanceState);		
-		mPresenter = new MainPresenter(this, this.getApplicationContext());	    
+		mPresenter = new MainPresenter(this, this.getApplicationContext(), null);	    
 	    
 	    // Adding the progress bar to the root of the layout
 	    ViewGroup root = (ViewGroup) findViewById(android.R.id.content);	    
@@ -47,7 +50,7 @@ public class MainActivity extends ListActivity implements IMainView, SearchView.
 	    getListView().setEmptyView(mStatusText);
 	    root.addView(mStatusText);
 	    	    
-	    mAdapter = new ArrayAdapter<Venue>(this, android.R.layout.simple_list_item_1, mVenues);
+	    mAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, mVenues);
 	    setListAdapter(mAdapter);
 	    
 	    mPresenter.activityCreated(savedInstanceState);
@@ -63,6 +66,12 @@ public class MainActivity extends ListActivity implements IMainView, SearchView.
 	public void onPause() {
 		super.onPause();
 		mPresenter.activityPaused();
+	}
+	
+	@Override
+	public void onDestroy() {
+		super.onDestroy();
+		mPresenter.activityDestroy();
 	}
 	
 	@Override
@@ -91,7 +100,9 @@ public class MainActivity extends ListActivity implements IMainView, SearchView.
 	public void setVenues(List<Venue> items) {
 		
 		mVenues.clear();
-		mVenues.addAll(items);
+		for (Venue venue : items) {
+			mVenues.add(getString(R.string.venue_format, venue.getName(), venue.getAddress(), venue.getDistanceInMeters()));
+		}
 		mAdapter.notifyDataSetChanged();
 	}
 
@@ -140,6 +151,7 @@ public class MainActivity extends ListActivity implements IMainView, SearchView.
 	@Override
 	public void setQueryString(String query) {
 		
+		// search string back after Configuration (orientation) change.
 		mSearchView.setQuery(query, false);		
 	}
 
@@ -171,5 +183,4 @@ public class MainActivity extends ListActivity implements IMainView, SearchView.
 		mVenues.clear();
 		mAdapter.notifyDataSetChanged();
 	}
-	
 }

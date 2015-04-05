@@ -21,9 +21,9 @@ public class HttpExecutor extends CommandExecutor {
 	/*
 	 */
 	@Override
-	public Result executeNetworkCommunication(Command command) {
+	public void executeNetworkCommunication(Command command) {				
 		
-		Result result = new Result();	
+		Result result = command.getResult();
 		
 	    try {
 	    	URL url = new URL(command.getUrlString());
@@ -44,8 +44,7 @@ public class HttpExecutor extends CommandExecutor {
 	    } catch (Exception e) {
 	    	result.setResultString(e.toString());
 	    	e.printStackTrace();
-	    }
-		return result;		
+	    }	    
 	}
 	
 	// Note: caller is responsible to close input stream.

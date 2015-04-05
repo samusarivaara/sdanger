@@ -13,9 +13,10 @@ package net.sarivaara.sdanger.rest;
 public class Result {
 	
 	public static final int RESULT_CODE_OK = 200;
+	public static final int RESULT_RESPONSE_PARSING_FAILED = -1000; // usually JsonException
 		
 	// HTTP error code. If other than RESULT_CODE_OK, result string is not valid. 
-	private int mErrorCode;
+	private int mErrorCode = RESULT_CODE_OK;
 	
 	// May contain java exception information if Exception is thrown during
 	// HTTP connection initialization or during IO communication.

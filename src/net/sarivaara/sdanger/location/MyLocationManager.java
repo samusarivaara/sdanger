@@ -11,22 +11,20 @@ import android.content.Context;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.Bundle;
 
-public class MyLocationManager {
+public class MyLocationManager implements LocationManagerAPI {
 	
-	private volatile LocationObserver mObserver; 
+	private LocationObserver mObserver; 
 	
 	// Last known location
-	// LL format for example "44.3,37.2", "32.8400,-117.2769"
-	private volatile String mLocationString = null;
-	private volatile float mLastAccuracyInMeters;
+	// LL decimal format for example "44.3,37.2","32.8400,-117.2769"
+	private String mLocationString;
+	private float mLastAccuracyInMeters;
+	private Location mBestCurrentLocation;
 	
 	private static final int MIN_UPDATE_FREQUENCY_MS = 10*1000; // 10 sec
 	private static final int MIN_DISTANCE_UPDATE_THRESHOLD_METERS = 10; // 10 meters
-	
 	
 	LocationManager mLocationManager;
 	Context mAppContext;
@@ -44,13 +42,13 @@ public class MyLocationManager {
 		saveLocationString(location);		
 	}
 	
-	private void saveLocationString(final Location location) {
-		// TODO: Here we should evaluate location based on provider, accuracy and time stamp.
-		if (location != null) {
-			//if (mLastAccuracyInMeters == 0 || mLastAccuracyInMeters > location.getAccuracy()) {
-				mLocationString = Location.convert(location.getLatitude(), Location.FORMAT_DEGREES) + "," + Location.convert(location.getLongitude(), Location.FORMAT_DEGREES);
-				mLastAccuracyInMeters = location.getAccuracy();
-			//}
+	private void saveLocationString(Location location) {
+		
+		// Use google's example location strategy
+		if (location != null && LocationStrategy.isBetterLocation(location, mBestCurrentLocation)) {
+			mBestCurrentLocation = location;
+			mLocationString = Location.convert(location.getLatitude(), Location.FORMAT_DEGREES) + "," + Location.convert(location.getLongitude(), Location.FORMAT_DEGREES);
+			mLastAccuracyInMeters = location.getAccuracy();
 		}
 	}
 	
@@ -65,40 +63,40 @@ public class MyLocationManager {
 					}
 				}
 			}
-	    }	    
-
+		}
 	    public void onProviderEnabled(String provider) {}
-
 	    public void onProviderDisabled(String provider) {}
 
 		@Override
-		public void onStatusChanged(String provider, int status, Bundle extras) {
-			
-			
+		public void onStatusChanged(String provider, int status, Bundle extras) {			
 		}
 	};	
 	
-	/*
-	 * @param LocationObserver Observer or null.
-	 * NOTE: Only one allowed, will replace previous observer.
-	 */
-	public synchronized void setLocationObserver(LocationObserver observer) {
+	@Override
+	public void setLocationObserver(LocationObserver observer) {
 		mObserver = observer;
+		if (mObserver == null) {
+			stopGettingLocationUpdates();
+		} else {
+			startGettingLocationUpdates();
+		}
 	}
 	
+	@Override
 	public String getLocation() {
 		return mLocationString;
 	}
 	
+	@Override
 	public float getAccuracy() {
 		return mLastAccuracyInMeters;
 	}	
 		
-	public void stopGettingLocationUpdates() {
+	private void stopGettingLocationUpdates() {
 		mLocationManager.removeUpdates(mLocationListener);
 	}
 	
-	public void startGettingLocationUpdates() {
+	private void startGettingLocationUpdates() {
 		
 		mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
 				MIN_UPDATE_FREQUENCY_MS, MIN_DISTANCE_UPDATE_THRESHOLD_METERS, mLocationListener);
@@ -106,6 +104,7 @@ public class MyLocationManager {
 				MIN_UPDATE_FREQUENCY_MS, MIN_DISTANCE_UPDATE_THRESHOLD_METERS, mLocationListener);
 	}
 	
+	@Override
 	public boolean locationServicesEnabled() {
 		
 		if(!mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) &&
@@ -114,28 +113,5 @@ public class MyLocationManager {
 			return false;
 		}
 		return true;
-	}
-	
-	// Code from http://stackoverflow.com/questions/10009804/check-network-connection-android
-	// NOTE: does not check other than WIFI/Mobile, could be improved.
-	public boolean isNetworkOk() {
-		
-		boolean status=false;
-		
-		try{
-			ConnectivityManager cm = (ConnectivityManager) mAppContext.getSystemService(Context.CONNECTIVITY_SERVICE);			
-		    NetworkInfo netInfo = cm.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
-		    if (netInfo != null && netInfo.getState()==NetworkInfo.State.CONNECTED) {
-		    	status= true;
-		    } else {
-		    	netInfo = cm.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
-		        if (netInfo!=null && netInfo.getState()==NetworkInfo.State.CONNECTED)
-		                status= true;
-		        }
-		 }catch(Exception e){
-			 e.printStackTrace();  
-		     return false;
-		 }
-		 return status;
 	}
 }

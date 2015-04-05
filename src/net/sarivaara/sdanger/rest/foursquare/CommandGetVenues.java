@@ -19,6 +19,7 @@ import android.util.Log;
 
 import net.sarivaara.sdanger.model.Venue;
 import net.sarivaara.sdanger.rest.Command;
+import net.sarivaara.sdanger.rest.Result;
 
 // Command specified by https://developer.foursquare.com/docs/venues/search
 // NOTE: Not using parameter that does not affect to search result.
@@ -51,8 +52,7 @@ public class CommandGetVenues extends CommandBase implements Command {
 		
 		if (mJsonResult != null) {
 			
-			mVenues.clear();
-			// Log.d("sdanger", mJsonResult);
+			mVenues.clear();			
 
 			try {
 				
@@ -97,6 +97,8 @@ public class CommandGetVenues extends CommandBase implements Command {
 				
 			}catch (JSONException e) {
 				Log.d("sdanger" , e.toString());
+				mResult.setErrorCode(Result.RESULT_RESPONSE_PARSING_FAILED);
+				mResult.setResultString(e.toString());
 			}						
 		}
 	}

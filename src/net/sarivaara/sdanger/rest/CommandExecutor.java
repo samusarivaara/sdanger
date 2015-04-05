@@ -11,20 +11,19 @@ import android.os.AsyncTask;
 import android.os.SystemClock;
 import android.util.Log;
 
-public abstract class CommandExecutor extends AsyncTask<Command, Void, Result> {
+public abstract class CommandExecutor extends AsyncTask<Command, Void, Command> {
 				
-	CommandObserver mObserver;
-	Command mCommand;
+	CommandObserver mObserver;	
 	
 	/*
 	 * @param Observer or null.
 	 * NOTE: Overwrites previous observer.
 	 */
 	public void setCommandObserver(CommandObserver observer) {
-		mObserver = observer;
+		mObserver = observer;		
 	}
 	
-	public abstract Result executeNetworkCommunication(Command command);
+	public abstract void executeNetworkCommunication(Command command);
 	
 	/*
 	 * 
@@ -33,29 +32,29 @@ public abstract class CommandExecutor extends AsyncTask<Command, Void, Result> {
 	 *         or null if http timeouts/fails.
 	 */
 	@Override	
-	protected Result doInBackground(Command... command) {
-		
-		mCommand = command[0]; // handling only one
+	protected Command doInBackground(Command... commands) {
+				
+		Command command = commands[0];
 		// Perf measurement
 		long time = SystemClock.elapsedRealtime();
 		
-		Result result = executeNetworkCommunication(mCommand);
+		executeNetworkCommunication(command);		
 		Log.d("sdanger", String.format("Http communication took %d ms", SystemClock.elapsedRealtime() - time));
 		
 		// Check cancel before transforming result json string into java object
-		if (!isCancelled() && result.getErrorCode() == Result.RESULT_CODE_OK) { 
-			mCommand.convertFromJsonToJavaObject();
+		if (!isCancelled() && command.getResult().getErrorCode() == Result.RESULT_CODE_OK) { 
+			command.convertFromJsonToJavaObject();
 		}
 		Log.d("sdanger", String.format("Command took totally %d ms", SystemClock.elapsedRealtime() - time));
-		return result;		
+		return command;		
 	}
 	
 	@Override
-    protected void onPostExecute(Result result) {
+    protected void onPostExecute(Command command) {
         
 		// call listener safely in main (UI) thread
 		if (mObserver != null) {
-			mObserver.onCommandResultReady(mCommand, result);
+			mObserver.onCommandResultReady(command, command.getResult());
 		}
     }
 	

@@ -15,6 +15,7 @@ public interface IMainPresenter {
 	public void activityCreated(Bundle data);
 	public void activityResumed();
 	public void activityPaused();
+	public void activityDestroy();
 	public void activityOnSaveInstanceState(Bundle data);
 	public void activityMenuReady();
 	

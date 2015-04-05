@@ -7,6 +7,8 @@
  */
 package net.sarivaara.sdanger.rest.foursquare;
 
+import net.sarivaara.sdanger.rest.Result;
+
 /*
  * Class for constructing HTTP get query string and for translating
  * json response string to objects defined by subclasses.
@@ -24,11 +26,13 @@ public class CommandBase {
 	private static final String CLIENT_M = "foursquare";
 	
 	protected String mUrlString;  // HTTP GET command. Parameters added in subclasses.
-	protected String mJsonResult; // Command spesific json reply.
+	protected String mJsonResult; // Command specific json reply string.
+	protected final Result mResult;
 
 	protected CommandBase() {
 		super();		
-		mUrlString = addCommonParams(BASE_URL);		
+		mUrlString = addCommonParams(BASE_URL);	
+		mResult = new Result();		
 	}
 	
 	private static String addCommonParams(String urlString) {
@@ -40,6 +44,10 @@ public class CommandBase {
 		result = result + "&v=" + CLIENT_VERSION_DATE;
 		
 		return result;
+	}
+	
+	public Result getResult() {
+		return mResult;
 	}
 	
 	// To ease up unit testing

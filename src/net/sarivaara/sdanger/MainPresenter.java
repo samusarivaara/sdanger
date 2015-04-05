@@ -11,10 +11,8 @@ import java.util.ArrayList;
 
 import android.content.Context;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
+import net.sarivaara.sdanger.location.LocationManagerAPI;
 import net.sarivaara.sdanger.location.LocationObserver;
-import net.sarivaara.sdanger.location.MyLocationManager;
 import net.sarivaara.sdanger.model.Venue;
 import net.sarivaara.sdanger.rest.Command;
 import net.sarivaara.sdanger.rest.CommandObserver;
@@ -29,34 +27,47 @@ public class MainPresenter implements IMainPresenter, LocationObserver, CommandO
 	// Current CommandExecutor in run, null if not running.
 	private CommandExecutor mCurrentCommandExecutor;
 	// Location manager, provides location updates
-	MyLocationManager mLocationManager;
+	private LocationManagerAPI mLocationManager;
 	// Store last query string for re-queries if location changes
-	String mLastQueryString;
-	// and last result to be used in saveInstanceState
+	private String mLastQueryString;
+	// Last result to be used in saveInstanceState
 	// to handle Configuration change (orientation, locale...)
-	ArrayList<Venue> mLastResult;
-	// and main view status (state)
-	IMainView.Status mStatus;
-	
-	// Main thread handler
-	Handler mHandler;
+	// Could make re-query but that causes unnecessary traffic and
+	// slowness.
+	private ArrayList<Venue> mLastResult = new ArrayList<Venue>(); 
 	
 	// Data to be saved in Bundle (Configuration changes)
 	private static final String BUNDLE_KEY_VENUES_RESULT = "bundle.venues";
 	private static final String BUNDLE_KEY_QUERY_STRING = "bundle.querystring";
 	
-	MainPresenter(IMainView mainView, Context context) {
+	Context mContext;
+	
+	/*
+	 * @param mainView View
+	 * @param context Activity context.
+	 * @param locationManagerAPI Use null for default one. None null for unit tests. 
+	 */
+	public MainPresenter(IMainView mainView, Context context, LocationManagerAPI locationManagerAPI) {
 		
 		mMainView = mainView;
-		mHandler = new Handler(Looper.getMainLooper());
-		App myApp = (App)context.getApplicationContext();
-		mLocationManager = myApp.getLocationManager();		
+		mContext = context; 
+		if (locationManagerAPI == null) {
+			App myApp = (App)context.getApplicationContext();
+			mLocationManager = myApp.getLocationManager();
+		} else {
+			mLocationManager = locationManagerAPI;
+		}
 	}
 		
 	@Override
 	public void queryStringModified(String queryString) {
 		
-		if (queryString != null) {
+		// TODO: Performance optimization. Wait 500ms before executing query, so quickly
+		// typed (full) words don't cause unnecessary network traffic.
+		// Could dramatically reduce hosting costs, user data plan costs. Only minor
+		// down side is that user need to wait half second more to get actual result. 
+		
+		if (queryString != null && mMainView != null) {
 			
 			mLastQueryString = queryString;
 			
@@ -70,7 +81,7 @@ public class MainPresenter implements IMainPresenter, LocationObserver, CommandO
 			CommandGetVenues command = new CommandGetVenues(mLocationManager.getLocation(), queryString);
 			mCurrentCommandExecutor.execute(command); // run AsyncTask
 			// Now wait for CommandObserver callback			
-			mMainView.showSearchProgress(true);
+			mMainView.showSearchProgress(true);			
 		}
 	}
 	
@@ -80,10 +91,11 @@ public class MainPresenter implements IMainPresenter, LocationObserver, CommandO
 		if (data != null) {
 		
 			mLastQueryString = data.getString(BUNDLE_KEY_QUERY_STRING, null);
-			mLastResult = data.getParcelableArrayList(BUNDLE_KEY_VENUES_RESULT);
+			ArrayList<Venue> result = data.getParcelableArrayList(BUNDLE_KEY_VENUES_RESULT);
 			
-			if (mLastResult != null) {
-				mMainView.setVenues(mLastResult);
+			if (result != null) {
+				mLastResult = result;
+				mMainView.setVenues(mLastResult);				
 			}
 		}
 	}
@@ -91,25 +103,26 @@ public class MainPresenter implements IMainPresenter, LocationObserver, CommandO
 	@Override
 	public void activityResumed() {
 		
-		if (!mLocationManager.isNetworkOk()) {
+		// Check errors every time when activity resumes.
+		
+		if (!Utils.isNetworkOk(mContext)) {
 			mMainView.setStatusText(IMainView.Status.EStatusNoNetwork, 0);
 		} else if (!mLocationManager.locationServicesEnabled()) {			
 			mMainView.setStatusText(IMainView.Status.EStatusNoLocation, 0);			
 		} else if (mLocationManager.getLocation() == null) {
 			mMainView.setStatusText(IMainView.Status.EStatusFirstLocationQueryOnGoing, 0);
-		} else {
+		} else if (mLastResult.size() == 0) {
 			mMainView.setStatusText(IMainView.Status.EStatusNoSearchMatches, mLocationManager.getAccuracy());
 		}
-		
-		mLocationManager.setLocationObserver(this);
-		mLocationManager.startGettingLocationUpdates();		
+				
+		mLocationManager.setLocationObserver(this);				
 	}
 	
 	@Override
 	public void activityMenuReady() {
 				
 		// return saved bundle value here because
-		// menu (ActionBar) is not ready in activityOnCreate
+		// menu (ActionBar) is not ready during activityOnCreate()
 		if (mLastQueryString != null) {
 			mMainView.setQueryString(mLastQueryString);
 		}		
@@ -118,9 +131,19 @@ public class MainPresenter implements IMainPresenter, LocationObserver, CommandO
 	@Override
 	public void activityPaused() {
 		
-		// Don't consume device's resources (battery) while Activity is paused.
-		mLocationManager.setLocationObserver(null);
-		mLocationManager.stopGettingLocationUpdates();
+		// Don't consume device's resources (battery) while activity is paused.
+		mLocationManager.setLocationObserver(null);		
+		
+		if (mCurrentCommandExecutor != null) {
+			mCurrentCommandExecutor.setCommandObserver(null);
+		}
+	}
+	
+	@Override
+	public void activityDestroy() {
+		
+		// release reference
+		mMainView = null;
 	}
 
 	@Override
@@ -137,33 +160,30 @@ public class MainPresenter implements IMainPresenter, LocationObserver, CommandO
 	@Override
 	public void onLocationUpdated(String locationString) {
 
-		// Run safely on UI thread
-		mHandler.post(new Runnable() {
-
-			@Override
-			public void run() {				
-				queryStringModified(mLastQueryString);
-			}			
-		});
+		// Called always from main thread, so it is safe to
+		// call this directly
+		queryStringModified(mLastQueryString);			
 	}
 
 	@Override
 	public void onCommandResultReady(Command command, Result result) {
 		
-		mMainView.showSearchProgress(false);
-		
-		if (command instanceof CommandGetVenues) {
-			if (result.getErrorCode() == Result.RESULT_CODE_OK) {
-				ArrayList<Venue> venues = ((CommandGetVenues)command).getVenues();   
-				mMainView.setVenues(venues);
-				mLastResult = venues;
-			} else {
-				// TODO: this could be improved for more user friendly errors strings.
-				String error = result.getResultString();
-				mMainView.showErrorMessage(error != null ?
-						IMainView.ErrorMessage.EHttp : IMainView.ErrorMessage.EGeneric);
+		if (mMainView != null) { // check if activity was destroyed.
+			mMainView.showSearchProgress(false);
+			
+			if (command instanceof CommandGetVenues) {
+				if (result.getErrorCode() == Result.RESULT_CODE_OK) {
+					ArrayList<Venue> venues = ((CommandGetVenues)command).getVenues();   
+					mMainView.setVenues(venues);
+					mLastResult = venues;
+				} else {
+					// TODO: this could be improved for more user friendly errors strings.
+					String error = result.getResultString();
+					mMainView.showErrorMessage(error != null ?
+							IMainView.ErrorMessage.EHttp : IMainView.ErrorMessage.EGeneric);
+				}
+					
 			}
-				
-		}				
-	}
+		}
+	}	
 }

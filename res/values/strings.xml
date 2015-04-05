@@ -4,6 +4,7 @@
     <string name="app_name">sdanger</string>
     <string name="menu_cmd_search">search</string>    
     <string name="search_query_hint">Venue search</string>
+    <string name="venue_format">%1$s %2$sDistance: %3$d meters</string>
         
     <string name="error_generic">Oops, something bad just happened. Please try again!</string>
     <string name="error_http">Backend bahaving badly. Please try again!</string>
@@ -11,6 +12,6 @@
     <string name="status_no_location">Location not available. Please enable  location services.</string>
     <string name="status_first_location_query">Getting your location.</string>
     <string name="status_no_network">Please check our network connectivity!</string>
-    <string name="status_no_matches">No venues found. Please modify query string or change your location. Location accuracy is %1$f meters</string>
+    <string name="status_no_matches">No venues found. Please modify query string or change your location. Location accuracy is %1$.1f meters</string>
 
 </resources>

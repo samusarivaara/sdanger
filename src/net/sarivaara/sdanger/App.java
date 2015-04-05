@@ -7,6 +7,7 @@
  */
 package net.sarivaara.sdanger;
 
+import net.sarivaara.sdanger.location.LocationManagerAPI;
 import net.sarivaara.sdanger.location.MyLocationManager;
 
 public class App extends android.app.Application {
@@ -15,7 +16,7 @@ public class App extends android.app.Application {
 	
 	// Keep location manager alive during app process' life time.
 	// to handle Configuration changes (activity/fragment recreates)
-	MyLocationManager mLocationManager;
+	LocationManagerAPI mLocationManager;
 	
 	@Override
 	public void onCreate() {	
@@ -23,7 +24,7 @@ public class App extends android.app.Application {
 		mLocationManager = new MyLocationManager(this);
 	}
 	
-	public MyLocationManager getLocationManager() {
+	public LocationManagerAPI getLocationManager() {
 		return mLocationManager;
 	}
 	
