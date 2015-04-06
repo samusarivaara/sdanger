@@ -7,6 +7,11 @@
  */
 package net.sarivaara.sdanger.location;
 
+/*
+ * LocationManager wrapper interface for enabling unit test without DI.
+ * Usage: setLocationObserver(...) and wait for callbacks. When had enough, just
+ * call setLocationObserver(null). 
+ */
 public interface LocationManagerAPI {
 
 	/*

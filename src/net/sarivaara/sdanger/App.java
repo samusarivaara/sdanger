@@ -10,12 +10,14 @@ package net.sarivaara.sdanger;
 import net.sarivaara.sdanger.location.LocationManagerAPI;
 import net.sarivaara.sdanger.location.MyLocationManager;
 
-public class App extends android.app.Application {
-
-	public static final String LOG_TAG = "sdanger";
+/*
+ * Application class. References to object(s) that should be available
+ * during our process life time.
+ */
+public class App extends android.app.Application {	
 	
 	// Keep location manager alive during app process' life time.
-	// to handle Configuration changes (activity/fragment recreates)
+	// It keeps last location even if it's not available via LocationManager.
 	LocationManagerAPI mLocationManager;
 	
 	@Override

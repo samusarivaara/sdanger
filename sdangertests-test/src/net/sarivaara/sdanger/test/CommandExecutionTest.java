@@ -69,7 +69,7 @@ public class CommandExecutionTest extends AndroidTestCase implements CommandObse
 	public void testCommandExecute1() {
 		commandExecutionResCheck();
 	}
-	
+
 //	public void testCommandCancel() {
 //		
 //		MockExecutor mockExecutor = new MockExecutor();		

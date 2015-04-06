@@ -22,7 +22,9 @@ import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-
+/*
+ * View implementation.
+ */
 public class MainActivity extends ListActivity implements IMainView, SearchView.OnQueryTextListener {
 	
 	IMainPresenter mPresenter;
@@ -39,7 +41,7 @@ public class MainActivity extends ListActivity implements IMainView, SearchView.
 	protected void onCreate(Bundle savedInstanceState) {
 		
 		super.onCreate(savedInstanceState);		
-		mPresenter = new MainPresenter(this, this.getApplicationContext(), null);	    
+		mPresenter = new MainPresenter(this, this.getApplicationContext(), null, null);	    
 	    
 	    // Adding the progress bar to the root of the layout
 	    ViewGroup root = (ViewGroup) findViewById(android.R.id.content);	    
@@ -88,7 +90,7 @@ public class MainActivity extends ListActivity implements IMainView, SearchView.
 		getMenuInflater().inflate(R.menu.main, menu);
 		SearchView searchView = (SearchView)menu.findItem(R.id.action_search).getActionView();
 		searchView.setQueryHint(getText(R.string.search_query_hint));
-		searchView.setIconified(false);
+		searchView.setIconified(true);
 		searchView.setOnQueryTextListener(this);
 		mSearchView = searchView;
 		
@@ -130,13 +132,13 @@ public class MainActivity extends ListActivity implements IMainView, SearchView.
 	@Override
 	public boolean onQueryTextChange(String newText) {
 		
-		mPresenter.queryStringModified(newText);
+		mPresenter.queryStringModified(newText, true);
 		return true;
 	}
 
 	@Override
 	public boolean onQueryTextSubmit(String query) {
-		mPresenter.queryStringModified(query);
+		mPresenter.queryStringModified(query, true);
 		return true;
 	}
 

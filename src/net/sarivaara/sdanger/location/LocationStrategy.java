@@ -3,7 +3,7 @@ package net.sarivaara.sdanger.location;
 import android.location.Location;
 
 // This is copied from http://developer.android.com/guide/topics/location/strategies.html
-// Copyright Google/apache2 :)
+// Copyright/unit tested by Google/apache2 :)
 
 public class LocationStrategy {
 

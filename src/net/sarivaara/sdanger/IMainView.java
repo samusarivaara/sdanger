@@ -11,6 +11,9 @@ import java.util.List;
 
 import net.sarivaara.sdanger.model.Venue;
 
+/*
+ * MVP's View interface.
+ */
 public interface IMainView {
 
 	// Status texts to be shown instead of empty list view.

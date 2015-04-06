@@ -11,6 +11,9 @@ import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 
+/*
+ * Utility class. Only static methods here.
+ */
 public class Utils {
 	
 	// Code from http://stackoverflow.com/questions/10009804/check-network-connection-android

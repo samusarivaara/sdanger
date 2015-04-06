@@ -16,25 +16,42 @@ import net.sarivaara.sdanger.location.LocationObserver;
 import net.sarivaara.sdanger.model.Venue;
 import net.sarivaara.sdanger.rest.Command;
 import net.sarivaara.sdanger.rest.CommandObserver;
-import net.sarivaara.sdanger.rest.HttpExecutor;
+import net.sarivaara.sdanger.rest.MyNetworkAPI;
+import net.sarivaara.sdanger.rest.NetworkAPI;
 import net.sarivaara.sdanger.rest.CommandExecutor;
 import net.sarivaara.sdanger.rest.Result;
 import net.sarivaara.sdanger.rest.foursquare.CommandGetVenues;
 
+/*
+ * Presenter implementation. Business logic/Use cases:
+ * 
+ * UC1 User types search - foursquare command(s) are executed immediately and previous one is cancelled.
+ * UC2 Location Manager updates location - search is automatically re-queried.
+ * UC3 User rotates device - last result is stored in Bundle, not re-queried to avoid unnecessary networking.
+ * UC4 User has disabled network (airplane, wifi/3G/4G off) - Error msg is shown.
+ * UC5 Error during command execution is shown with a toast. 
+ *
+ */
 public class MainPresenter implements IMainPresenter, LocationObserver, CommandObserver {
 
 	private IMainView mMainView;	
 	// Current CommandExecutor in run, null if not running.
 	private CommandExecutor mCurrentCommandExecutor;
 	// Location manager, provides location updates
-	private LocationManagerAPI mLocationManager;
+	private LocationManagerAPI mLocationManager;	
+	// CommandExecutors are created via this interface. 
+	private NetworkAPI mNetworkAPI;
 	// Store last query string for re-queries if location changes
 	private String mLastQueryString;
 	// Last result to be used in saveInstanceState
 	// to handle Configuration change (orientation, locale...)
 	// Could make re-query but that causes unnecessary traffic and
 	// slowness.
-	private ArrayList<Venue> mLastResult = new ArrayList<Venue>(); 
+	private ArrayList<Venue> mLastResult = new ArrayList<Venue>();
+	// Store mLastQueryString returned from bundle, so we can detect
+	// that queryStringModified() call was not called because
+	// we called IMainView.setQueryString().
+	private String mLastQueryStringFromBundle;
 	
 	// Data to be saved in Bundle (Configuration changes)
 	private static final String BUNDLE_KEY_VENUES_RESULT = "bundle.venues";
@@ -45,9 +62,11 @@ public class MainPresenter implements IMainPresenter, LocationObserver, CommandO
 	/*
 	 * @param mainView View
 	 * @param context Activity context.
-	 * @param locationManagerAPI Use null for default one. None null for unit tests. 
+	 * @param locationManagerAPI Use null for default. None null for unit tests.
+	 * @param networkAPI Use null for default. None null for unit tests.  
 	 */
-	public MainPresenter(IMainView mainView, Context context, LocationManagerAPI locationManagerAPI) {
+	public MainPresenter(IMainView mainView, Context context,
+	                     LocationManagerAPI locationManagerAPI, NetworkAPI networkAPI) {
 		
 		mMainView = mainView;
 		mContext = context; 
@@ -57,10 +76,15 @@ public class MainPresenter implements IMainPresenter, LocationObserver, CommandO
 		} else {
 			mLocationManager = locationManagerAPI;
 		}
+		if (networkAPI == null) {
+			mNetworkAPI = new MyNetworkAPI();
+		} else {
+			mNetworkAPI = networkAPI;
+		}
 	}
 		
 	@Override
-	public void queryStringModified(String queryString) {
+	public void queryStringModified(String queryString, boolean callerIsView) {
 		
 		// TODO: Performance optimization. Wait 500ms before executing query, so quickly
 		// typed (full) words don't cause unnecessary network traffic.
@@ -69,6 +93,12 @@ public class MainPresenter implements IMainPresenter, LocationObserver, CommandO
 		
 		if (queryString != null && mMainView != null) {
 			
+			if (queryString.equals(mLastQueryStringFromBundle) && callerIsView) {
+				// Don't query after orientation change, only if location changes.
+				mLastQueryStringFromBundle = null;
+				return;
+			}
+			
 			mLastQueryString = queryString;
 			
 			// Check if we are executing previous search query.
@@ -76,7 +106,7 @@ public class MainPresenter implements IMainPresenter, LocationObserver, CommandO
 				mCurrentCommandExecutor.cancel(true);
 				mCurrentCommandExecutor.setCommandObserver(null); // release reference
 			}
-			mCurrentCommandExecutor = new HttpExecutor(); // Creates AsyncTask 
+			mCurrentCommandExecutor = mNetworkAPI.createCommandExecutor(); // Creates AsyncTask 
 			mCurrentCommandExecutor.setCommandObserver(this);
 			CommandGetVenues command = new CommandGetVenues(mLocationManager.getLocation(), queryString);
 			mCurrentCommandExecutor.execute(command); // run AsyncTask
@@ -91,6 +121,7 @@ public class MainPresenter implements IMainPresenter, LocationObserver, CommandO
 		if (data != null) {
 		
 			mLastQueryString = data.getString(BUNDLE_KEY_QUERY_STRING, null);
+			mLastQueryStringFromBundle = mLastQueryString;
 			ArrayList<Venue> result = data.getParcelableArrayList(BUNDLE_KEY_VENUES_RESULT);
 			
 			if (result != null) {
@@ -104,17 +135,7 @@ public class MainPresenter implements IMainPresenter, LocationObserver, CommandO
 	public void activityResumed() {
 		
 		// Check errors every time when activity resumes.
-		
-		if (!Utils.isNetworkOk(mContext)) {
-			mMainView.setStatusText(IMainView.Status.EStatusNoNetwork, 0);
-		} else if (!mLocationManager.locationServicesEnabled()) {			
-			mMainView.setStatusText(IMainView.Status.EStatusNoLocation, 0);			
-		} else if (mLocationManager.getLocation() == null) {
-			mMainView.setStatusText(IMainView.Status.EStatusFirstLocationQueryOnGoing, 0);
-		} else if (mLastResult.size() == 0) {
-			mMainView.setStatusText(IMainView.Status.EStatusNoSearchMatches, mLocationManager.getAccuracy());
-		}
-				
+		updateStatus();				
 		mLocationManager.setLocationObserver(this);				
 	}
 	
@@ -162,7 +183,23 @@ public class MainPresenter implements IMainPresenter, LocationObserver, CommandO
 
 		// Called always from main thread, so it is safe to
 		// call this directly
-		queryStringModified(mLastQueryString);			
+		queryStringModified(mLastQueryString, false);			
+	}
+	
+	/*
+	 * Check errors and set view's status.
+	 */
+	private void updateStatus() {
+		
+		if (!Utils.isNetworkOk(mContext)) {
+			mMainView.setStatusText(IMainView.Status.EStatusNoNetwork, 0);
+		} else if (!mLocationManager.locationServicesEnabled()) {			
+			mMainView.setStatusText(IMainView.Status.EStatusNoLocation, 0);			
+		} else if (mLocationManager.getLocation() == null) {
+			mMainView.setStatusText(IMainView.Status.EStatusFirstLocationQueryOnGoing, 0);
+		} else if (mLastResult.size() == 0) {
+			mMainView.setStatusText(IMainView.Status.EStatusNoSearchMatches, mLocationManager.getAccuracy());
+		}
 	}
 
 	@Override
@@ -176,14 +213,17 @@ public class MainPresenter implements IMainPresenter, LocationObserver, CommandO
 					ArrayList<Venue> venues = ((CommandGetVenues)command).getVenues();   
 					mMainView.setVenues(venues);
 					mLastResult = venues;
+					if (venues.size() == 0) {
+						updateStatus();
+					}
+					
 				} else {
 					// TODO: this could be improved for more user friendly errors strings.
 					String error = result.getResultString();
 					mMainView.showErrorMessage(error != null ?
 							IMainView.ErrorMessage.EHttp : IMainView.ErrorMessage.EGeneric);
-				}
-					
+				}					
 			}
 		}
-	}	
+	}
 }

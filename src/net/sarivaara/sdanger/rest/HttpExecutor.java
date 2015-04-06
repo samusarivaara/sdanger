@@ -14,6 +14,9 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
+/*
+ * HTTP GET executor.
+ */
 public class HttpExecutor extends CommandExecutor {
 
 	private static final int HTTP_OK = 200;
