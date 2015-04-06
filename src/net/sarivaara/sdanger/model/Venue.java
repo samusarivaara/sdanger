@@ -7,6 +7,7 @@
  */
 package net.sarivaara.sdanger.model;
 
+import android.annotation.SuppressLint;
 import android.os.Parcel;
 import android.os.Parcelable;
 
@@ -58,8 +59,9 @@ public class Venue implements Parcelable {
 		mDistanceInMeters = distanceMeters;
 	}
 	
+	// ONLY for debugging purposes
+	@SuppressLint("DefaultLocale")
 	public String toString() {
-		// ONLY for debugging purposes
 		return String.format("%s %s Distance: %d meters", mName, mAddress, mDistanceInMeters);
 	}
 	

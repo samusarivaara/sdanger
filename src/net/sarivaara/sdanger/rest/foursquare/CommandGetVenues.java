@@ -30,6 +30,14 @@ public class CommandGetVenues extends CommandBase implements Command {
 	// Result array
 	private ArrayList<Venue> mVenues = new ArrayList<Venue>();
 	
+	// Json constants for parsing.
+	private static final String RESPONSE = "response";
+	private static final String VENUES = "venues";
+	private static final String NAME = "name";
+	private static final String DISTANCE = "distance";
+	private static final String LOCATION = "location";
+	private static final String FORMATTEDADDRESS = "formattedAddress";
+	
 	/*
 	 * @param location Location string in format "123.12345,123.12345"
 	 * @param query User's search filter, usually text from Search editor.  
@@ -57,15 +65,15 @@ public class CommandGetVenues extends CommandBase implements Command {
 			try {
 				
 				JSONObject object = new JSONObject(mJsonResult);
-				JSONObject response = object.getJSONObject("response");
-				JSONArray venues = response.getJSONArray("venues");
+				JSONObject response = object.getJSONObject(RESPONSE);
+				JSONArray venues = response.getJSONArray(VENUES);
 								
 				for (int i=0;i<venues.length();i++) {
 				
 					Venue venue = new Venue();
 					
 					JSONObject jsonVenue = venues.getJSONObject(i);
-					venue.setName(jsonVenue.getString("name"));
+					venue.setName(jsonVenue.getString(NAME));
 
 					// Location parsing
 					// Defined by spec:
@@ -78,10 +86,10 @@ public class CommandGetVenues extends CommandBase implements Command {
 					// reasons (such as private residences). If this is the case, the parameter
 					// isFuzzed will be set to true, and the lat/lng parameters will have reduced precision. 
 					 
-					JSONObject location = jsonVenue.getJSONObject("location");
-					if (location.has("formattedAddress")) {
+					JSONObject location = jsonVenue.getJSONObject(LOCATION);
+					if (location.has(FORMATTEDADDRESS)) {
 						
-						JSONArray formattedAddressItems =  location.getJSONArray("formattedAddress");
+						JSONArray formattedAddressItems =  location.getJSONArray(FORMATTEDADDRESS);
 						StringBuffer sb = new StringBuffer();
 						for (int j=0;j<formattedAddressItems.length();j++) {
 							sb.append(formattedAddressItems.getString(j));
@@ -89,8 +97,8 @@ public class CommandGetVenues extends CommandBase implements Command {
 						}
 						venue.setAddress(sb.toString());						
 					}
-					if (location.has("distance")) {
-						venue.setDistanceInMeters(location.getInt("distance"));
+					if (location.has(DISTANCE)) {
+						venue.setDistanceInMeters(location.getInt(DISTANCE));
 					}					
 					mVenues.add(venue);
 				}

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">sdanger</string>
+    <string name="menu_cmd_search">etsi</string>    
+    <string name="search_query_hint">Etsi paikkoja</string>
+    <string name="venue_format">%1$s %2$sEtäisyys: %3$d meters</string>
+        
+    <string name="error_generic">Oho, jotain odottamatonta tapahtui. Yritä uudelleen!</string>
+    <string name="error_http">Ongelmia serverillä. Yritä uudelleen!</string>
+    
+    <string name="status_no_location">Laitapa laitteen sijainti palvelut päälle</string>
+    <string name="status_first_location_query">Haetaan sijaintia.</string>
+    <string name="status_no_network">Tarkista verkkoyhteys!</string>
+    <string name="status_no_matches">Paikkoja ei löydy. Liiku tai tarkenna hakua. Sijainnin tarkkuus on %1$.1f metriä</string>
+
+</resources>

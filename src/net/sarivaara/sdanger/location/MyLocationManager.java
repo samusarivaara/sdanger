@@ -53,15 +53,24 @@ public class MyLocationManager implements LocationManagerAPI {
 	 * @return true if location was actually stored.
 	 */
 	private boolean saveLocationString(Location location) {
-		
+				
 		// Use google's example location strategy
 		if (location != null && LocationStrategy.isBetterLocation(location, mCurrentLocation)) {
 			mCurrentLocation = location;
-			mLocationString = Location.convert(location.getLatitude(), Location.FORMAT_DEGREES) + "," + Location.convert(location.getLongitude(), Location.FORMAT_DEGREES);
+			
+			mLocationString = locateToUsFormat(mCurrentLocation);
 			mLastAccuracyInMeters = location.getAccuracy();
 			return true;
 		}
 		return false;
+	}
+	
+	// Locate is Locale specific, convert ',' -> '.' if found 
+	private String locateToUsFormat(Location location) {
+		
+		String latitudeString = Location.convert(location.getLatitude(), Location.FORMAT_DEGREES);
+		String longitudeString = Location.convert(location.getLongitude(), Location.FORMAT_DEGREES);
+		return latitudeString.replace(',', '.') + "," + longitudeString.replace(',', '.');
 	}
 	
 	LocationListener mLocationListener = new LocationListener() {
