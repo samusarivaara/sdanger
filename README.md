@@ -5,7 +5,7 @@ Setup
 package net.sarivaara.sdanger.rest.foursquare;
 
 public class Config {
-	public static final String CLIENT_ID     = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-	public static final String CLIENT_SECRET = "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy";
+    public static final String CLIENT_ID     = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+    public static final String CLIENT_SECRET = "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy";
 }
 
